@@ -11,11 +11,16 @@ import {
   HeldHandRight,
   HoveredHandLeft,
   HeldHandLeft,
-  LoadedByMediaLoader,
-  AEntity
+  AEntity,
+  Networked,
+  MediaLoader,
+  Deletable
 } from "../bit-components";
 import { canMove } from "../utils/permissions-utils";
+import { canMove as canMoveEntity } from "../utils/bit-permissions-utils";
 import { isPinned } from "../bit-systems/networking";
+import { takeOwnership } from "../utils/take-ownership";
+import { findAncestorWithComponents } from "../utils/bit-utils";
 
 const GRAB_REMOTE_RIGHT = paths.actions.cursor.right.grab;
 const DROP_REMOTE_RIGHT = paths.actions.cursor.right.drop;
@@ -27,11 +32,14 @@ const GRAB_HAND_LEFT = paths.actions.leftHand.grab;
 const DROP_HAND_LEFT = paths.actions.leftHand.drop;
 
 function hasPermissionToGrab(world, eid) {
-  if (!hasComponent(world, AEntity, eid)) return true;
-  return canMove(world.eid2obj.get(eid).el);
+  if (hasComponent(world, AEntity, eid)) {
+    return canMove(world.eid2obj.get(eid).el);
+  } else {
+    return canMoveEntity(eid);
+  }
 }
 
-function isAEntityPinned(world, eid) {
+export function isAEntityPinned(world, eid) {
   if (hasComponent(world, AEntity, eid)) {
     const el = world.eid2obj.get(eid).el;
     return !!el.components?.pinnable?.data?.pinned;
@@ -67,43 +75,25 @@ function isAEntityPinned(world, eid) {
 // Alternate solution: Simply recognize an entity as pinned if its any
 // ancestor is pinned (in hold-system) unless there is a case that
 // descendant entity under pinned entity wants to be grabbable.
-function isParentPinned(world, eid) {
-  if (!world.eid2obj.has(eid)) {
-    return false;
-  }
-
-  const obj = world.eid2obj.get(eid);
-
-  if (obj.parent === null) {
-    return false;
-  }
-
-  const parent = obj.parent;
-
-  if (parent.eid === undefined) {
-    return false;
-  }
-
-  return isPinned(parent.eid);
-}
-
 function grab(world, userinput, queryHovered, held, grabPath) {
   const hovered = queryHovered(world)[0];
-  let isEntityPinned = isPinned(hovered) || isAEntityPinned(world, hovered);
 
-  // Special path for Dropped/Pasted Media with new loader enabled
-  if (!isEntityPinned && hasComponent(world, LoadedByMediaLoader, hovered)) {
-    isEntityPinned = isParentPinned(world, hovered);
-  }
+  // Special path for Dropped/Pasted Media with new loader enabled. Check the comment above.
+  const mediaRoot = findAncestorWithComponents(world, [Deletable, MediaLoader, Holdable], hovered);
+  const target = mediaRoot ? mediaRoot : hovered;
+  const isEntityPinned = isPinned(target) || isAEntityPinned(world, target);
 
   if (
-    hovered &&
+    target &&
     userinput.get(grabPath) &&
     (!isEntityPinned || AFRAME.scenes[0].is("frozen")) &&
-    hasPermissionToGrab(world, hovered)
+    hasPermissionToGrab(world, target)
   ) {
-    addComponent(world, held, hovered);
-    addComponent(world, Held, hovered);
+    if (hasComponent(world, Networked, target)) {
+      takeOwnership(world, target);
+    }
+    addComponent(world, held, target);
+    addComponent(world, Held, target);
   }
 }
 

@@ -1,5 +1,5 @@
-import { addComponent, defineQuery, enterQuery, entityExists, hasComponent, removeComponent } from "bitecs";
-import { Mesh, MeshBasicMaterial, Object3D, Plane, Ray, Vector3 } from "three";
+import { addComponent, defineQuery, entityExists, hasComponent, removeComponent } from "bitecs";
+import { Object3D, Plane, Ray, Vector3 } from "three";
 import { clamp, mapLinear } from "three/src/math/MathUtils";
 import { Text as TroikaText } from "troika-three-text";
 import { HubsWorld } from "../app";
@@ -9,26 +9,24 @@ import {
   Held,
   HeldRemoteRight,
   HoveredRemoteRight,
+  Interacted,
   MediaVideo,
   MediaVideoData,
   NetworkedVideo,
-  VideoMenu,
-  VideoMenuItem
+  ObjectMenuTransform,
+  VideoMenu
 } from "../bit-components";
 import { timeFmt } from "../components/media-video";
 import { takeOwnership } from "../utils/take-ownership";
 import { paths } from "../systems/userinput/paths";
-import { animate } from "../utils/animate";
-import { coroutine } from "../utils/coroutine";
-import { easeOutQuadratic } from "../utils/easing";
 import { isFacingCamera } from "../utils/three-utils";
 import { Emitter2Audio } from "./audio-emitter-system";
-import { VIDEO_FLAGS } from "../inflators/video";
+import { EntityID } from "../utils/networking-types";
+import { findAncestorWithComponent, hasAnyComponent } from "../utils/bit-utils";
+import { ObjectMenuTransformFlags } from "../inflators/object-menu-transform";
 
 const videoMenuQuery = defineQuery([VideoMenu]);
-const hoverRightVideoQuery = defineQuery([HoveredRemoteRight, MediaVideo]);
-const hoverRightVideoEnterQuery = enterQuery(hoverRightVideoQuery);
-const hoverRightMenuItemQuery = defineQuery([HoveredRemoteRight, VideoMenuItem]);
+const hoveredQuery = defineQuery([HoveredRemoteRight]);
 const sliderHalfWidth = 0.475;
 
 function setCursorRaycastable(world: HubsWorld, menu: number, enable: boolean) {
@@ -45,73 +43,118 @@ const intersectInThePlaneOf = (() => {
     ray.set(position, direction);
     plane.normal.set(0, 0, 1);
     plane.constant = 0;
-    obj.updateMatrices();
     plane.applyMatrix4(obj.matrixWorld);
     ray.intersectPlane(plane, intersection);
   };
 })();
 
 type Job<T> = () => IteratorResult<undefined, T>;
-let rightMenuIndicatorCoroutine: Job<void> | null = null;
 
-let intersectionPoint = new Vector3();
-export function videoMenuSystem(world: HubsWorld, userinput: any) {
-  const rightVideoMenu = videoMenuQuery(world)[0];
-  const shouldHideVideoMenu =
-    VideoMenu.videoRef[rightVideoMenu] &&
-    (!entityExists(world, VideoMenu.videoRef[rightVideoMenu]) ||
-      (!hoverRightVideoQuery(world).length &&
-        !hoverRightMenuItemQuery(world).length &&
-        !hasComponent(world, Held, VideoMenu.trackRef[rightVideoMenu])));
-  if (shouldHideVideoMenu) {
-    const menu = rightVideoMenu;
-    const menuObj = world.eid2obj.get(menu)!;
-    menuObj.removeFromParent();
-    setCursorRaycastable(world, menu, false);
+function findVideoMenuTarget(world: HubsWorld, menu: EntityID, sceneIsFrozen: boolean) {
+  if (VideoMenu.videoRef[menu] && !entityExists(world, VideoMenu.videoRef[menu])) {
+    // Clear the invalid entity reference. (The pdf entity was removed).
     VideoMenu.videoRef[menu] = 0;
   }
 
-  hoverRightVideoEnterQuery(world).forEach(function (eid) {
-    if (MediaVideo.flags[eid] & VIDEO_FLAGS.CONTROLS) {
-      const menu = rightVideoMenu;
-      VideoMenu.videoRef[menu] = eid;
-      const menuObj = world.eid2obj.get(menu)!;
-      const videoObj = world.eid2obj.get(eid)!;
-      videoObj.add(menuObj);
-      setCursorRaycastable(world, menu, true);
+  if (sceneIsFrozen) {
+    VideoMenu.videoRef[menu] = 0;
+    return;
+  }
+
+  const isTrackHoveredOrHeld = hasAnyComponent(world, [Held, HoveredRemoteRight], VideoMenu.trackRef[menu]);
+  if (isTrackHoveredOrHeld) {
+    VideoMenu.clearTargetTimer[menu] = world.time.elapsed + 1000;
+    return;
+  }
+
+  const hovered = hoveredQuery(world);
+  const target = hovered.map(eid => findAncestorWithComponent(world, MediaVideo, eid))[0] || 0;
+  if (target) {
+    VideoMenu.videoRef[menu] = target;
+    VideoMenu.clearTargetTimer[menu] = world.time.elapsed + 1000;
+    return;
+  }
+
+  if (hovered.some(eid => findAncestorWithComponent(world, VideoMenu, eid))) {
+    VideoMenu.clearTargetTimer[menu] = world.time.elapsed + 1000;
+    return;
+  }
+
+  if (world.time.elapsed > VideoMenu.clearTargetTimer[menu]) {
+    VideoMenu.videoRef[menu] = 0;
+    return;
+  }
+}
+
+function flushToObject3Ds(world: HubsWorld, menu: EntityID, frozen: boolean) {
+  const target = VideoMenu.videoRef[menu];
+  const visible = !!(target && !frozen);
+
+  const obj = world.eid2obj.get(menu)!;
+  obj.visible = visible;
+
+  // TODO We are handling menus visibility in a similar way for all the object menus, we
+  // should probably refactor this to a common object-menu-visibility-system
+  if (visible) {
+    setCursorRaycastable(world, menu, true);
+    APP.world.scene.add(obj);
+    ObjectMenuTransform.targetObjectRef[menu] = target;
+    ObjectMenuTransform.flags[menu] |= ObjectMenuTransformFlags.Enabled;
+  } else {
+    obj.removeFromParent();
+    setCursorRaycastable(world, menu, false);
+
+    ObjectMenuTransform.flags[menu] &= ~ObjectMenuTransformFlags.Enabled;
+  }
+}
+
+function clicked(world: HubsWorld, eid: EntityID) {
+  return hasComponent(world, Interacted, eid);
+}
+
+function handleClicks(world: HubsWorld, menu: EntityID) {
+  const videoEid = VideoMenu.videoRef[menu];
+  const video = MediaVideoData.get(videoEid)!;
+  const audioEid = Emitter2Audio.get(videoEid)!;
+  if (clicked(world, VideoMenu.playIndicatorRef[menu])) {
+    video.play();
+    APP.isAudioPaused.delete(audioEid);
+    if (hasComponent(world, NetworkedVideo, videoEid)) {
+      takeOwnership(world, videoEid);
+      addComponent(world, EntityStateDirty, videoEid);
     }
-  });
+  } else if (clicked(world, VideoMenu.pauseIndicatorRef[menu])) {
+    video.pause();
+    APP.isAudioPaused.add(audioEid);
+    if (hasComponent(world, NetworkedVideo, videoEid)) {
+      takeOwnership(world, videoEid);
+      addComponent(world, EntityStateDirty, videoEid);
+    }
+  }
+}
+
+let intersectionPoint = new Vector3();
+export function videoMenuSystem(world: HubsWorld, userinput: any, sceneIsFrozen: boolean) {
+  const rightVideoMenu = videoMenuQuery(world)[0];
+  findVideoMenuTarget(world, rightVideoMenu, sceneIsFrozen);
 
   videoMenuQuery(world).forEach(function (eid) {
     const videoEid = VideoMenu.videoRef[eid];
     if (!videoEid) return;
     const menuObj = world.eid2obj.get(eid)!;
     const video = MediaVideoData.get(videoEid)!;
-    const togglePlayVideo = userinput.get(paths.actions.cursor.right.togglePlayVideo);
-    if (togglePlayVideo) {
-      if (hasComponent(world, NetworkedVideo, videoEid)) {
-        takeOwnership(world, videoEid);
-        addComponent(world, EntityStateDirty, videoEid);
-      }
 
-      const playIndicatorObj = world.eid2obj.get(VideoMenu.playIndicatorRef[eid])!;
-      const pauseIndicatorObj = world.eid2obj.get(VideoMenu.pauseIndicatorRef[eid])!;
-
-      const audioEid = Emitter2Audio.get(videoEid)!;
-      if (video.paused) {
-        video.play();
-        APP.isAudioPaused.delete(audioEid);
-        playIndicatorObj.visible = true;
-        pauseIndicatorObj.visible = false;
-        rightMenuIndicatorCoroutine = coroutine(animateIndicator(world, VideoMenu.playIndicatorRef[eid]));
-      } else {
-        video.pause();
-        APP.isAudioPaused.add(audioEid);
-        playIndicatorObj.visible = false;
-        pauseIndicatorObj.visible = true;
-        rightMenuIndicatorCoroutine = coroutine(animateIndicator(world, VideoMenu.pauseIndicatorRef[eid]));
-      }
+    const playIndicatorObj = world.eid2obj.get(VideoMenu.playIndicatorRef[eid])!;
+    const pauseIndicatorObj = world.eid2obj.get(VideoMenu.pauseIndicatorRef[eid])!;
+    if (video.paused) {
+      playIndicatorObj.visible = true;
+      pauseIndicatorObj.visible = false;
+    } else {
+      playIndicatorObj.visible = false;
+      pauseIndicatorObj.visible = true;
     }
+
+    handleClicks(world, eid);
 
     const videoIsFacingCamera = isFacingCamera(world.eid2obj.get(videoEid)!);
     const yRot = videoIsFacingCamera ? 0 : Math.PI;
@@ -148,28 +191,7 @@ export function videoMenuSystem(world: HubsWorld, userinput: any) {
     const slider = world.eid2obj.get(VideoMenu.sliderRef[eid])!;
     slider.position.setY(-(ratio / 2) + 0.025);
     slider.matrixNeedsUpdate = true;
-
-    if (rightMenuIndicatorCoroutine && rightMenuIndicatorCoroutine().done) {
-      rightMenuIndicatorCoroutine = null;
-    }
   });
-}
 
-const START_SCALE = new Vector3().setScalar(0.05);
-const END_SCALE = new Vector3().setScalar(0.25);
-function* animateIndicator(world: HubsWorld, eid: number) {
-  const obj = world.eid2obj.get(eid)!;
-  yield* animate({
-    properties: [
-      [START_SCALE, END_SCALE],
-      [0.75, 0]
-    ],
-    durationMS: 700,
-    easing: easeOutQuadratic,
-    fn: ([scale, opacity]: [Vector3, number]) => {
-      obj.scale.copy(scale);
-      obj.matrixNeedsUpdate = true;
-      ((obj as Mesh).material as MeshBasicMaterial).opacity = opacity;
-    }
-  });
+  flushToObject3Ds(world, rightVideoMenu, sceneIsFrozen);
 }
