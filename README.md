@@ -74,3 +74,7 @@ Mozilla and Hubs believe that privacy is fundamental to a healthy internet. Read
 
 Hubs is licensed with the [Mozilla Public License 2.0](./LICENSE)
 
+## Sponsors
+
+This project is sponsored by Browserstack
+
