@@ -76,5 +76,5 @@ Hubs is licensed with the [Mozilla Public License 2.0](./LICENSE)
 
 ## Sponsors
 
-This project is sponsored by Browserstack
+This project is tested with BrowserStack
 
