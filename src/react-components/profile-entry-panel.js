@@ -35,6 +35,13 @@ export default class ProfileEntryPanel extends Component {
   constructor(props) {
     super(props);
     this.state = this.getStateFromProfile();
+
+    const qs = new URLSearchParams(location.search);
+    const avatarGlbUrl = qs.get("avatarId");
+    if (avatarGlbUrl && !props.avatarId) {
+      console.log("Avatar Glb url" + avatarGlbUrl);
+      this.state.avatarId = "https://models.readyplayer.me/" + avatarGlbUrl + ".glb";
+    }
     if (props.avatarId) {
       this.state.avatarId = props.avatarId;
     }
@@ -52,20 +59,20 @@ export default class ProfileEntryPanel extends Component {
   saveStateAndFinish = e => {
     e && e.preventDefault();
 
-    const { displayName, pronouns } = this.props.store.state.profile;
-    const { hasChangedNameOrPronouns } = this.props.store.state.activity;
+    // const { displayName } = this.props.store.state.profile;
+    // const { hasChangedName } = this.props.store.state.activity;
 
-    const hasChangedNowOrPreviously =
-      hasChangedNameOrPronouns || this.state.displayName !== displayName || this.state.pronouns !== pronouns;
+    // const hasChangedNowOrPreviously = hasChangedName || this.state.displayName !== displayName;
     this.props.store.update({
       activity: {
-        hasChangedNameOrPronouns: hasChangedNowOrPreviously,
+        // hasChangedName: hasChangedNowOrPreviously,
+        hasChangedName: false,
         hasAcceptedProfile: true
       },
       profile: {
         displayName: this.state.displayName,
         avatarId: this.state.avatarId,
-        pronouns: this.state.pronouns
+        pronouns: "Guest"
       }
     });
     this.props.finished();

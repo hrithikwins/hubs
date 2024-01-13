@@ -321,6 +321,22 @@ export const EntityNodes = definitionListToMap([
     }
   }),
   makeFlowNodeDefinition({
+    typeName: "hubs/misc/openUrl",
+    category: "Components" as any,
+    label: "Open Url",
+    in: {
+      flow: "flow",
+      url: "string"
+    },
+    out: { flow: "flow" },
+    initialState: undefined,
+    triggered: ({ read, commit, graph }) => {
+      const src: string = read("url");
+      window.open(src);
+      commit("flow");
+    }
+  }),
+  makeFlowNodeDefinition({
     typeName: "hubs/misc/changehub",
     category: "Components" as any,
     label: "Change Hub",
