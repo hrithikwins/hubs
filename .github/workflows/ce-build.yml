@@ -1,4 +1,4 @@
-name: ce
+name: ayodhya
 
 on:
   workflow_dispatch:
@@ -11,6 +11,8 @@ on:
         type: string
         default: RetPageOriginDockerfile
       registry:
+        type: string
+      image-name:
         type: string
 
 jobs:
