@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import classNames from "classnames";
 import { Modal } from "../modal/Modal";
@@ -27,16 +27,18 @@ export function RoomEntryModal({
   onRoomSettings,
   ...rest
 }) {
+  useEffect(() => {
+    onJoinRoom();
+  }, []);
   const breakpoint = useCssBreakpoints();
   return (
     <Modal className={classNames(styles.roomEntryModal, className)} disableFullscreen {...rest}>
       <Column center className={styles.content}>
         {breakpoint !== "sm" && breakpoint !== "md" && <AppLogo className={styles.logo} />}
         <div className={styles.roomName}>
-          <h5>
-            <FormattedMessage id="room-entry-modal.room-name-label" defaultMessage="Room Name" />
-          </h5>
-          <p>{roomName}</p>
+          <p>
+            <FormattedMessage id="room-entry-modal.room-name-label" defaultMessage="Welcome to" /> {roomName}
+          </p>
         </div>
         <Column center className={styles.buttons}>
           {showJoinRoom && (
@@ -47,7 +49,7 @@ export function RoomEntryModal({
               </span>
             </Button>
           )}
-          {showEnterOnDevice && (
+          {/* {showEnterOnDevice && (
             <Button preset="accent5" onClick={onEnterOnDevice}>
               <VRIcon />
               <span>
@@ -62,7 +64,7 @@ export function RoomEntryModal({
                 <FormattedMessage id="room-entry-modal.spectate-button" defaultMessage="Spectate" />
               </span>
             </Button>
-          )}
+          )} */}
           {showRoomSettings && breakpoint !== "sm" && (
             <>
               <hr className={styleUtils.showLg} />

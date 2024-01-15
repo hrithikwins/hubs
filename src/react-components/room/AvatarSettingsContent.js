@@ -23,8 +23,8 @@ export function AvatarSettingsContent({
   return (
     <Column as="form" className={styles.content} {...rest}>
       <TextInputField
-        disabled={disableDisplayNameInput}
-        label={<FormattedMessage id="avatar-settings-content.display-name-label" defaultMessage="Display Name" />}
+        disabled={true}
+        // label={<FormattedMessage id="avatar-settings-content.display-name-label" defaultMessage="Display Name" />}
         value={displayName}
         pattern={displayNamePattern}
         spellCheck="false"
@@ -33,24 +33,26 @@ export function AvatarSettingsContent({
         description={
           <FormattedMessage
             id="avatar-settings-content.display-name-description"
-            defaultMessage="Alphanumerics, hyphens, underscores, and tildes. At least 3 characters, no more than 32"
+            defaultMessage="Your Name that other see you as"
           />
         }
         ref={displayNameInputRef}
       />
-      <TextInputField
-        label={<FormattedMessage id="avatar-settings-content.pronouns-label" defaultMessage="Pronouns (optional)" />}
+      {/* <TextInputField
+        label={<FormattedMessage id="avatar-settings-content.pronouns-label" defaultMessage="User" />}
         value={pronouns}
         pattern={pronounsPattern}
         spellCheck="false"
         onChange={onChangePronouns}
         ref={pronounsInputRef}
-      />
+        disabled={true}
+      /> */}
+      <h5>This is your Avatar</h5>
       <div className={styles.avatarPreviewContainer}>
         {avatarPreview || <div />}
-        <Button type="button" preset="basic" onClick={onChangeAvatar}>
+        {/* <Button type="button" preset="basic" onClick={onChangeAvatar}>
           <FormattedMessage id="avatar-settings-content.change-avatar-button" defaultMessage="Change Avatar" />
-        </Button>
+        </Button> */}
       </div>
       <AcceptButton preset="accept" type="submit" />
     </Column>
