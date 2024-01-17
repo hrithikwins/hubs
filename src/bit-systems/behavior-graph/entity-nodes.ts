@@ -337,6 +337,22 @@ export const EntityNodes = definitionListToMap([
     }
   }),
   makeFlowNodeDefinition({
+    typeName: "hubs/misc/openIframe",
+    category: "Components" as any,
+    label: "Open Iframe",
+    in: {
+      flow: "flow",
+      url: "string"
+    },
+    out: { flow: "flow" },
+    initialState: undefined,
+    triggered: ({ read, commit, graph }) => {
+      const src: string = read("url");
+      AFRAME.scenes[0].emit("open_iframe", src);
+      commit("flow");
+    }
+  }),
+  makeFlowNodeDefinition({
     typeName: "hubs/misc/changehub",
     category: "Components" as any,
     label: "Change Hub",
