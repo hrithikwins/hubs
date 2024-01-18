@@ -67,6 +67,8 @@ import { ReactComponent as SupportIcon } from "./icons/Support.svg";
 import { ReactComponent as ShieldIcon } from "./icons/Shield.svg";
 import { ReactComponent as DiscordIcon } from "./icons/Discord.svg";
 import { ReactComponent as VRIcon } from "./icons/VR.svg";
+import { ReactComponent as ClockIcon } from "./icons/Wand.svg";
+
 import { ReactComponent as LeaveIcon } from "./icons/Leave.svg";
 import { ReactComponent as EnterIcon } from "./icons/Enter.svg";
 import { ReactComponent as InviteIcon } from "./icons/Invite.svg";
@@ -1711,12 +1713,12 @@ class UIRoot extends Component {
                             />
                           </>
                         )}
-                        {this.props.hubChannel.can("spawn_emoji") && (
+                        {/* {this.props.hubChannel.can("spawn_emoji") && (
                           <ReactionPopoverContainer
                             scene={this.props.scene}
                             initialPresence={getPresenceProfileForSession(this.props.presences, this.props.sessionId)}
                           />
-                        )}
+                        )} */}
                       </>
                     )}
                     {!isLockedDownDemo && (
