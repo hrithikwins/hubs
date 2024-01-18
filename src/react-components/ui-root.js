@@ -106,6 +106,7 @@ import { usePermissions } from "./room/hooks/usePermissions";
 import { ChatContextProvider } from "./room/contexts/ChatContext";
 import ChatToolbarButton from "./room/components/ChatToolbarButton/ChatToolbarButton";
 import SeePlansCTA from "./room/components/SeePlansCTA/SeePlansCTA";
+import { changeHub } from "../change-hub";
 
 const avatarEditorDebug = qsTruthy("avatarEditorDebug");
 
@@ -1741,7 +1742,7 @@ class UIRoot extends Component {
                       preset="accept"
                       label={<FormattedMessage id="toolbar.visit-consultation" defaultMessage="Consultation" />}
                       onClick={() => {
-
+                        changeHub("n5CqPDD", true, "");
                       }}
                     />
                     {entered && isMobileVR && (
