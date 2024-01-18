@@ -1,0 +1,57 @@
+@use "../styles/theme.scss";
+
+:local(.contentContainer) {
+  z-index: 10001;
+  height: calc(100vh - 100px);
+  width: 98vw !important;
+  border-radius: 20px;
+}
+
+:local(.contentContainerSmall) {
+  z-index: 10001;
+  height: calc(100vh - 100px);
+  width: 98vw !important;
+  padding-left: 40vw;
+  padding-right: 40vw;
+  border-radius: 20px;
+  @media (max-width: 768px) {
+    padding-right: 0px;
+    padding-left: 0px;
+  }
+}
+
+:local(.iframe) {
+  background-color: #fff;
+
+  z-index: 10001;
+  height: 95%;
+}
+
+:local(.iframeButton) {
+  position: relative;
+  margin: auto;
+  //   top: 20px;
+  //   left: 20px;
+  //   right: 0;
+  width: 180px; //width is height and height is width
+  height: 48px;
+  padding: 18px;
+  grid-row-start: viewport;
+  display: flex;
+  justify-content: center;
+  color: white;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  text-transform: uppercase;
+  transition: 0.5s;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background-color: #ef0001;
+
+  & > * {
+    pointer-events: auto;
+  }
+}

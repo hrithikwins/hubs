@@ -348,7 +348,7 @@ export const EntityNodes = definitionListToMap([
     initialState: undefined,
     triggered: ({ read, commit, graph }) => {
       const src: string = read("url");
-      AFRAME.scenes[0].emit("open_iframe", src);
+      AFRAME.scenes[0].emit("iframe_open", src);
       commit("flow");
     }
   }),

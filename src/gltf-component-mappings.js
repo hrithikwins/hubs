@@ -8,6 +8,7 @@ import { updateAudioSettings } from "./update-audio-settings";
 import { commonInflators, renderAsEntity } from "./utils/jsx-entity";
 import { Networked } from "./bit-components";
 import { addComponent } from "bitecs";
+import { Button } from "./prefabs/scene-event-tool";
 
 const inflatorWrapper = inflator => (el, _componentName, componentData) =>
   inflator(APP.world, el.object3D.eid, componentData);

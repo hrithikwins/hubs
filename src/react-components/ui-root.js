@@ -82,6 +82,7 @@ import { AudioPopoverButtonContainer } from "./room/AudioPopoverButtonContainer"
 import { ReactionPopoverContainer } from "./room/ReactionPopoverContainer";
 import { SafariMicModal } from "./room/SafariMicModal";
 import { RoomSignInModalContainer } from "./auth/RoomSignInModalContainer";
+import { ProfileSwipeModal } from "./room/ProfileSwipeContainer";
 import { SignInStep } from "./auth/SignInModal";
 import { LeaveReason, LeaveRoomModal } from "./room/LeaveRoomModal";
 import { RoomSidebar } from "./room/RoomSidebar";
@@ -203,6 +204,8 @@ class UIRoot extends Component {
     signedIn: false,
     videoShareMediaSource: null,
     showVideoShareFailed: false,
+    isEventListenerAdded: false,
+    isIframeVisible: false,
 
     objectInfo: null,
     objectSrc: "",
@@ -469,6 +472,13 @@ class UIRoot extends Component {
     );
   };
 
+  toggleEventListenerAdded = () => {
+    this.setState({ isEventListenerAdded: !this.state.isEventListenerAdded });
+  };
+
+  toggleIframeVisibility = () => {
+    this.setState({ isIframeVisible: !this.state.isIframeVisible });
+  };
   isFavorited = () => {
     return this.state.isFavorited !== undefined ? this.state.isFavorited : this.props.initialIsFavorited;
   };
@@ -490,6 +500,9 @@ class UIRoot extends Component {
 
   onShareVideoEnabled = e => {
     this.setState({ videoShareMediaSource: e.detail.source });
+  };
+  changeIframeUrl = url => {
+    this.setState({ iframeUrl: url });
   };
 
   onShareVideoDisabled = () => {
@@ -983,7 +996,16 @@ class UIRoot extends Component {
     if (this.state.isRecordingMode) {
       return (
         <div className={classNames(rootStyles)}>
-          <RoomLayoutContainer scene={this.props.scene} store={this.props.store} viewport={<RecordModeTip />} />
+          <RoomLayoutContainer
+            isEventListenerAdded={this.isEventListenerAdded}
+            isIframeVisible={this.isIframeVisible}
+            toggleEventListenerAdded={this.toggleEventListenerAdded}
+            toggleIframeVisibility={this.toggleIframeVisibility}
+            changeIframeUrl={this.changeIframeUrl}
+            scene={this.props.scene}
+            store={this.props.store}
+            viewport={<RecordModeTip />}
+          />
         </div>
       );
     }
@@ -991,6 +1013,11 @@ class UIRoot extends Component {
       return (
         <div className={classNames(rootStyles)}>
           <RoomLayoutContainer
+            isEventListenerAdded={this.isEventListenerAdded}
+            isIframeVisible={this.isIframeVisible}
+            toggleEventListenerAdded={this.toggleEventListenerAdded}
+            toggleIframeVisibility={this.toggleIframeVisibility}
+            changeIframeUrl={this.changeIframeUrl}
             scene={this.props.scene}
             store={this.props.store}
             viewport={!this.state.hideUITip && <FullscreenTip onDismiss={() => this.setState({ hideUITip: true })} />}
@@ -1002,7 +1029,16 @@ class UIRoot extends Component {
     if (this.props.showSafariMicDialog) {
       return (
         <div className={classNames(rootStyles)}>
-          <RoomLayoutContainer scene={this.props.scene} store={this.props.store} modal={<SafariMicModal />} />
+          <RoomLayoutContainer
+            isEventListenerAdded={this.isEventListenerAdded}
+            isIframeVisible={this.isIframeVisible}
+            toggleEventListenerAdded={this.toggleEventListenerAdded}
+            toggleIframeVisibility={this.toggleIframeVisibility}
+            changeIframeUrl={this.changeIframeUrl}
+            scene={this.props.scene}
+            store={this.props.store}
+            modal={<SafariMicModal />}
+          />
         </div>
       );
     }
@@ -1399,12 +1435,21 @@ class UIRoot extends Component {
             )}
             {this.props.hub && (
               <RoomLayoutContainer
+                isEventListenerAdded={this.isEventListenerAdded}
+                isIframeVisible={this.isIframeVisible}
+                toggleEventListenerAdded={this.toggleEventListenerAdded}
+                toggleIframeVisibility={this.toggleIframeVisibility}
+                changeIframeUrl={this.changeIframeUrl}
                 scene={this.props.scene}
                 store={this.props.store}
                 objectFocused={!!this.props.selectedObject}
                 streaming={streaming}
+                entered={this.state.entered}
+                isIframeOpen={this.state.isIframeOpen}
+                toggleIFrame={this.toggleIFrame}
                 viewport={
                   <>
+                    {this.state.isIframeOpen && <ProfileSwipeModal toggleIFrame={this.toggleIFrame} />}
                     {!this.state.dialog && renderEntryFlow ? entryDialog : undefined}
                     {!this.props.selectedObject && <CompactMoreMenuButton />}
                     {(!this.props.selectedObject ||
@@ -1431,6 +1476,24 @@ class UIRoot extends Component {
                       </ContentMenu>
                     )}
                     {!entered && !streaming && !isMobile && streamerName && <SpectatingLabel name={streamerName} />}
+                    {/* //  {this.state.isInstructionPanelOpen && !isMobile && (
+                    //   <InstructionPanel
+                    //     togglePanel={this.toggleInstructionPanel}
+                    //     // src="https://previews.customer.envatousercontent.com/files/379407202/index.html"
+                    //   />
+                    // )} */}
+                    {/* {entered && this.state.isIframeVisible && (
+                      <>
+                        <ProfileSwipeModal
+                          toggleIFrame={this.toggleIframeVisibility}
+                          isIframeForMobile={this.isIframeForMobile}
+                          src="https://previews.customer.envatousercontent.com/files/379407202/index.html"
+                        />
+                        <button onClick={this.toggleIframeVisibility}>
+                          <FormattedMessage id="close" defaultMessage="Close" />
+                        </button>
+                      </>
+                    )} */}
                     {this.props.activeObject && (
                       <ObjectMenuContainer
                         hubChannel={this.props.hubChannel}
@@ -1442,6 +1505,18 @@ class UIRoot extends Component {
                           }
                         }}
                       />
+                    )}
+                    {entered && this.state.isIframeVisible && (
+                      <>
+                        <ProfileSwipeModal
+                          toggleMapOpen={() => this.toggleIframeVisibility(false)}
+                          src={this.state.iframeUrl}
+                          //   isIframeForMobile={this.state.isIframeForMobile}
+                          isIframeForMobile={false}
+                        />
+                      </>
+
+                      //   <InstructionPanel togglePanel={this.toggleIFrame2} closeText={"OK"} isLanguage={true} />
                     )}
                     {this.state.sidebarId !== "chat" && this.props.hub && (
                       <PresenceLog
