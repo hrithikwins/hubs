@@ -1713,12 +1713,12 @@ class UIRoot extends Component {
                             />
                           </>
                         )}
-                        {/* {this.props.hubChannel.can("spawn_emoji") && (
+                        {this.props.hubChannel.can("spawn_emoji") && (
                           <ReactionPopoverContainer
                             scene={this.props.scene}
                             initialPresence={getPresenceProfileForSession(this.props.presences, this.props.sessionId)}
                           />
-                        )} */}
+                        )}
                       </>
                     )}
                     {!isLockedDownDemo && (
@@ -1727,6 +1727,15 @@ class UIRoot extends Component {
                         selected={this.state.sidebarId === "chat"}
                       />
                     )}
+                    <ToolbarButton
+                      icon={<ClockIcon />}
+                      preset="accept"
+                      label={<FormattedMessage id="toolbar.open-appointment" defaultMessage="Appointment" />}
+                      onClick={() => {
+                        this.toggleIframeVisibility();
+                        this.changeIframeUrl("https://fpaindia.netlify.app/virtualclinic-clienthistory");
+                      }}
+                    />
                     {entered && isMobileVR && (
                       <ToolbarButton
                         className={styleUtils.hideLg}
