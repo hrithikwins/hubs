@@ -69,7 +69,7 @@ export function ProfileSwipeModal({
         }}
         className={(styles.modalContainer, styles.iframeButton)}
       >
-        <FormattedMessage id="room.iframe-button-close-now" defaultMessage="Close" />
+        <FormattedMessage id="room.iframe-button-close-now" defaultMessage="DONE" />
       </div>
     </Column>
   );
