@@ -1736,6 +1736,14 @@ class UIRoot extends Component {
                         this.changeIframeUrl("https://fpaindia.netlify.app/virtualclinic-clienthistory");
                       }}
                     />
+                    <ToolbarButton
+                      icon={<VRIcon />}
+                      preset="accept"
+                      label={<FormattedMessage id="toolbar.visit-consultation" defaultMessage="Consultation" />}
+                      onClick={() => {
+
+                      }}
+                    />
                     {entered && isMobileVR && (
                       <ToolbarButton
                         className={styleUtils.hideLg}
